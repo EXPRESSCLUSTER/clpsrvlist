@@ -10,10 +10,10 @@ import (
 )
 
 func main() {
-	var jsonServers map[string]interface{}
+	var jsonServers [][]map[string]interface{}
 	var jsonResult map[string]interface{}
 	var (
-		m = flag.Int("m", 0, "Debug flag")
+		d = flag.Int("d", 0, "Debug flag")
 	)
 
 	flag.Parse()
@@ -24,39 +24,75 @@ func main() {
 		fmt.Println("ReadFile() failed: ", err)
 		os.Exit(1)
 	}
-	json.Unmarshal([]byte(servers), &jsonServers)
+	json.Unmarshal(servers, &jsonServers)
+	if *d == 1 {
+		fmt.Println(string(servers))
+		fmt.Println(jsonServers)
+	}
 
 	/*Get server status */
-	arrayServers := jsonServers["servers"].([]interface{})
-	for i := 0; i < len(arrayServers); i++ {
-		user := arrayServers[i].(map[string]interface{})["user"]
-		password := arrayServers[i].(map[string]interface{})["password"]
-		ipaddress := arrayServers[i].(map[string]interface{})["ipaddress"]
-		port := arrayServers[i].(map[string]interface{})["port"]
-		hostname := arrayServers[i].(map[string]interface{})["hostname"]
-		url := fmt.Sprintf("http://%s:%s@%s:%s/api/v1/servers/%s", user, password, ipaddress, port, hostname)
-
-		resp, err := http.Get(url)
-		if err != nil {
-			if *m == 1 {
-				fmt.Println("http.Get() failed: ", err)
+	for i := 0; i < len(jsonServers); i++ {
+		for j := 0; j < len(jsonServers[i]); j++ {
+			ipaddress := jsonServers[i][j]["ipaddress"]
+			port := jsonServers[i][j]["port"]
+			user := jsonServers[i][j]["user"]
+			password := jsonServers[i][j]["password"]
+			if *d == 1 {
+				fmt.Println(ipaddress, port, user, password)
 			}
-			fmt.Println(arrayServers[i].(map[string]interface{})["hostname"], "Unknown")
-			continue
-		}
-		defer resp.Body.Close()
 
-		byteArray, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			if *m == 1 {
-				fmt.Println("ioutil.ReadAll() failed: ", err)
+			/* Get server status */
+			url := fmt.Sprintf("http://%s:%s@%s:%s/api/v1/servers", user, password, ipaddress, port)
+			resp, err := http.Get(url)
+			if err != nil {
+				if *d == 1 {
+					fmt.Println("http.Get() failed: ", err)
+				}
+				fmt.Println("Error")
+				continue
 			}
-			fmt.Println(arrayServers[i].(map[string]interface{})["hostname"], "Unknown")
-			continue
-		}
+			defer resp.Body.Close()
+			byteArray, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				if *d == 1 {
+					fmt.Println("ioutil.ReadAll() failed: ", err)
+				}
+				fmt.Println("Error")
+				continue
+			}
+			json.Unmarshal([]byte(byteArray), &jsonResult)
+			array := jsonResult["servers"].([]interface{})
+			for k := 0; k < len(array); k++ {
+				fmt.Println((array[k].(map[string]interface{}))["name"], ",", (array[k].(map[string]interface{}))["status"])
+			}
 
-		json.Unmarshal([]byte(byteArray), &jsonResult)
-		array := jsonResult["servers"].([]interface{})
-		fmt.Println((array[0].(map[string]interface{}))["name"], (array[0].(map[string]interface{}))["status"])
+			/* Get group status */
+			url = fmt.Sprintf("http://%s:%s@%s:%s/api/v1/groups", user, password, ipaddress, port)
+			resp, err = http.Get(url)
+			if err != nil {
+				if *d == 1 {
+					fmt.Println("http.Get() failed: ", err)
+				}
+				fmt.Println("Error")
+				continue
+			}
+			defer resp.Body.Close()
+			byteArray, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				if *d == 1 {
+					fmt.Println("ioutil.ReadAll() failed: ", err)
+				}
+				fmt.Println("Error")
+				continue
+			}
+			json.Unmarshal([]byte(byteArray), &jsonResult)
+			array = jsonResult["groups"].([]interface{})
+			for k := 0; k < len(array); k++ {
+				fmt.Println((array[k].(map[string]interface{}))["name"], ",",
+					(array[k].(map[string]interface{}))["status"], ",",
+					(array[k].(map[string]interface{}))["current"])
+			}
+			break
+		}
 	}
 }
