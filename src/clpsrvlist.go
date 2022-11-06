@@ -48,7 +48,6 @@ func main() {
 				if *d == 1 {
 					fmt.Println("http.Get() failed: ", err)
 				}
-				fmt.Println("Error")
 				continue
 			}
 			defer resp.Body.Close()
@@ -57,8 +56,10 @@ func main() {
 				if *d == 1 {
 					fmt.Println("ioutil.ReadAll() failed: ", err)
 				}
-				fmt.Println("Error")
 				continue
+			}
+			if *d == 1 {
+				fmt.Println(string(byteArray))
 			}
 			json.Unmarshal([]byte(byteArray), &jsonResult)
 			array := jsonResult["servers"].([]interface{})
@@ -73,7 +74,6 @@ func main() {
 				if *d == 1 {
 					fmt.Println("http.Get() failed: ", err)
 				}
-				fmt.Println("Error")
 				continue
 			}
 			defer resp.Body.Close()
@@ -82,7 +82,6 @@ func main() {
 				if *d == 1 {
 					fmt.Println("ioutil.ReadAll() failed: ", err)
 				}
-				fmt.Println("Error")
 				continue
 			}
 			json.Unmarshal([]byte(byteArray), &jsonResult)
